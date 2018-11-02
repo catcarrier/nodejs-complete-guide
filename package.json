@@ -4,7 +4,8 @@
   "description": "Maximilian Complete Node.js guide walkthrough",
   "main": "app.js",
   "dependencies": {
-    "body-parser": "^1.18.3"
+    "body-parser": "^1.18.3",
+    "express": "^4.16.4"
   },
   "devDependencies": {
     "nodemon": "^1.18.5"
