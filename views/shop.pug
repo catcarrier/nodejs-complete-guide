@@ -1,0 +1,21 @@
+extends layouts/main-layout.pug
+
+block styles
+    link(rel="stylesheet", href="/css/product.css")
+block content
+    main
+        if prods.length > 0 
+            .grid
+                each product in prods
+                    article.card.product-item
+                        header.card__header
+                            h1.product__title #{product.title}
+                        .card__image
+                            img(src="https://media.istockphoto.com/photos/open-book-picture-id495477978?k=6&m=495477978&s=612x612&w=0&h=e673w4tPLT2ZtJ62ytZcF_DBPxMBP57duHK0AFr6lQo=",alt="A Book")
+                        .card__content
+                            h2.product__price $19.99
+                            p.product__description A very interesting book about so many even more interesting things!
+                        .card__actions
+                            button.btn Add to Cart
+        else
+            h1 No products defined
