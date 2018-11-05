@@ -5,11 +5,20 @@ const adminData = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 
 const bodyParser = require('body-parser');
+const expressHbs = require('express-handlebars');
 
 const app = express();
 
-app.set('view engine', 'pug'); // pug registers itself with express
-//app.set('views', 'views'); // the default
+// use express-handlebars
+app.engine('hbs', expressHbs());
+app.set('view engine', 'hbs');
+app.set('views', 'views');
+
+// use pug
+//app.set('view engine', 'pug'); // pug registers itself with express
+//app.set('views', 'views'); // the default, ok to omit if views are under /views
+
+
 
 app.use( bodyParser.urlencoded({extended:false}) );
 app.use( express.static( path.join( __dirname, 'public')));
