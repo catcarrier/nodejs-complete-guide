@@ -10,8 +10,11 @@ const expressHbs = require('express-handlebars');
 const app = express();
 
 // use express-handlebars
-app.engine('hbs', expressHbs());
-app.set('view engine', 'hbs');
+app.engine('hbs', expressHbs({
+    layoutsDir:'views/layouts/', 
+    defaultLayout:'main-layout',
+    extname:'hbs'})); // ext apples only to default layout
+app.set('view engine', 'hbs'); // extension applies too all files except layout
 app.set('views', 'views');
 
 // use pug
