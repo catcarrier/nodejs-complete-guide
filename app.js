@@ -5,17 +5,19 @@ const adminData = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 
 const bodyParser = require('body-parser');
-const expressHbs = require('express-handlebars');
+// const expressHbs = require('express-handlebars');
 
 const app = express();
 
+app.set('view engine', 'ejs');
+
 // use express-handlebars
-app.engine('hbs', expressHbs({
-    layoutsDir:'views/layouts/', 
-    defaultLayout:'main-layout',
-    extname:'hbs'})); // ext apples only to default layout
-app.set('view engine', 'hbs'); // extension applies too all files except layout
-app.set('views', 'views');
+// app.engine('hbs', expressHbs({
+//     layoutsDir:'views/layouts/', 
+//     defaultLayout:'main-layout',
+//     extname:'hbs'})); // ext apples only to default layout
+// app.set('view engine', 'hbs'); // extension applies too all files except layout
+// app.set('views', 'views');
 
 // use pug
 //app.set('view engine', 'pug'); // pug registers itself with express
