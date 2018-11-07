@@ -11,10 +11,18 @@ exports.getAddProduct = (req, res, next) => {
 };
 
 exports.postAddProduct = (req, res, next) => {
-    if (req.body.title != '') {
-        const product = new Product(req.body.title);
-        product.save();
-    }
+    const title = req.body.title;
+    const imageUrl = req.body.imageUrl;
+    const description = req.body.description;
+    const price = req.body.price;
+
+    const product = new Product(
+        title,
+        imageUrl,
+        description,
+        price
+    );
+    product.save();
     res.redirect('/');
 };
 
@@ -22,7 +30,8 @@ exports.getAllProducts = (req, res, next) => {
     Product.fetchAll((products) => {
         res.render('admin/products', {
             pageTitle: "Admin Products",
-            path: "/admin/products"
+            path: "/admin/products",
+            prods : products
         })
     });
 };
