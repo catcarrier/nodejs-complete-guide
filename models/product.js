@@ -1,6 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 
+const p = path.join( path.dirname( process.mainModule.filename ), 'data', 'products.json' );
+
+const getProductsFromFile = cb => {
+    fs.readFile(p, (err,fileContent) => {
+        if(err) {
+            return cb([]); // exit here
+        }
+        cb( JSON.parse(fileContent) );
+    });
+}
 
 module.exports = class Product {
     constructor(title) {
@@ -8,40 +18,15 @@ module.exports = class Product {
     }
 
     save() {
-        const p = path.join( path.dirname( process.mainModule.filename ), 'data', 'products.json' );
-
-        // get existing array by reading the file.
-        // Will get error if no file exists -- in that case continue from empty array.
-        fs.readFile(p, (err, fileContent) => {
-            let products = [];
-            if(!err) {
-                products = JSON.parse(fileContent);
-            }
-
-            // This line is why we need an arrow function for the readfile handler.
-            // With a traditional function we would not have the 'this' context.
+        getProductsFromFile( products => {
             products.push( this );
-
-            //console.log('products:', products);
-
-            // write the updated array back into the file
-            fs.writeFile(p, JSON.stringify(products), (err) => {
-                if(err) { 
-                    console.log(err); 
-                } else {
-                    console.log('updated product file ok');
-                }
-            });
+            fs.writeFile(p, JSON.stringify(products), err => {
+                console.log(err); 
+            });  
         });
     }
 
     static fetchAll(cb) {
-        const p = path.join( path.dirname( process.mainModule.filename ), 'data', 'products.json' );
-        fs.readFile(p, (err,fileContent) => {
-            if(err) {
-                cb([]);
-            }
-            cb( JSON.parse(fileContent) );
-        });
+        getProductsFromFile(cb);
     }
 }
