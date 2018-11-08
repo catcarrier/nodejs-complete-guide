@@ -1,34 +1,44 @@
+const fs = require('fs');
 const path = require('path');
 
-const p = path.join( path.dirname( process.mainModule.filename ), 'data', 'cart.json' );
+const p = path.join(path.dirname(process.mainModule.filename), 'data', 'cart.json');
 
 const getCartContentsFromFile = cb => {
-    fs.readFile(p, (err,fileContent) => {
-        if(err) {
-            return cb([]); // exit here
+    fs.readFile(p, (err, fileContent) => {
+        let cart = { products: [], totalPrice: 0 }
+        if (!err) {
+            cart = JSON.parse(fileContent);
         }
-        cb( JSON.parse(fileContent) );
+        cb(cart);
     });
 }
 
 module.exports = class Cart {
-    
-    constructor() {
-        this.itemsToAdd = []; 
+
+    static addProduct(id, productPrice) {
+
+        // fetch the previous cart
+        // check if this id is in the cart
+        // add new product or increment quantity
+        getCartContentsFromFile(cart => {
+            const existingProductIndex = cart.products.findIndex(prod => prod.id === id);
+            const existingProduct = cart.products[existingProductIndex];
+            if (existingProduct) {
+                var updatedProduct = { ...existingProduct };
+                updatedProduct.quantity = updatedProduct.quantity + 1;
+                cart.products[existingProductIndex] = updatedProduct;
+            } else {
+                var newProduct = { id: id, quantity: 1 };
+                cart.products = [...cart.products, newProduct];
+            }
+            cart.totalPrice = cart.totalPrice + productPrice;
+            this.save(cart);
+        });
     }
 
-    add(p) {
-        this.itemsToAdd.push(p);
-        this.save();
-    }
-
-    save() {
-        getCartContentsFromFile( list => {
-            if(this.itemsToAdd.length > 0) { list.push(this.itemsToAdd); }
-            this.itemsToAdd.length=0;
-            fs.writeFile(p, JSON.stringify(list), err => {
-                if(err) { console.log(err); }
-            });  
+    static save(cart) {
+        fs.writeFile(p, JSON.stringify(cart), err => {
+            if (err) { console.log(err); }
         });
     }
 
