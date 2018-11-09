@@ -23,6 +23,7 @@ exports.getProduct = (req, res, next) => {
     });
 };
 
+
 exports.getIndex = (req, res, next) => {
     Product.fetchAll((products) => {
         res.render('shop/index', {
@@ -34,9 +35,27 @@ exports.getIndex = (req, res, next) => {
 };
 
 exports.getCart = (req, res, next) => {
-    res.render('shop/cart', {
-        pageTitle: 'Your Cart',
-        path: '/cart'
+    Cart.getCart(cart => {
+        Product.fetchAll(products => {
+            // For each product that is also in the cart, return a hybrid object
+            // combining the product (from Product) with the quantity (from Cart)
+            const cartProducts = [];
+            for (product of products) {
+                const cartProductData = cart.products.find(p => p.id === product.id);
+                if (cartProductData) {
+                    cartProducts.push({
+                        productData: product,
+                        quantity: cartProductData.quantity
+                    });
+                };
+            }
+            res.render('shop/cart', {
+                pageTitle: 'Your Cart',
+                path: '/cart',
+                products: cartProducts
+            });
+        })
+
     });
 };
 
@@ -51,11 +70,11 @@ exports.getRemoveFromCart = (req, res, next) => {
     const productId = req.body.productId;
 
     // need product price for cart total price adjustment
-    const product = Product.getProductById(productId);
-    const productPrice = product.price;
-
-    Cart.deleteProduct(productId, productPrice);
-    return res.redirect('/cart');
+    const product = Product.getProductById(productId, product => {
+        const productPrice = product.price;
+        Cart.deleteProduct(productId, productPrice);
+        return res.redirect('/cart');
+    });
 };
 
 exports.getOrders = (req, res, next) => {

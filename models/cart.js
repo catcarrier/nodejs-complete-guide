@@ -49,6 +49,9 @@ module.exports = class Cart {
     static deleteProduct(id, price) {
 
         getCartContentsFromFile( cart => {
+
+            if(cart.products.length < 1) {return;}
+
             // is this product in the cart? If no, bail out.
             const productIndex = cart.products.findIndex(p => p.id===id);
 
@@ -66,6 +69,13 @@ module.exports = class Cart {
 
             Cart.save(updatedCart);
         } );
+    }
+
+    // todo duplicate of fetchAll
+    static getCart(cb) {
+        getCartContentsFromFile( cart => {
+            return cb(cart);
+        });
     }
 
 }
