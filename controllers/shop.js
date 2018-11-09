@@ -47,6 +47,17 @@ exports.getAddToCart = (req, res, next) => {
     res.redirect('/cart');
 };
 
+exports.getRemoveFromCart = (req, res, next) => {
+    const productId = req.body.productId;
+
+    // need product price for cart total price adjustment
+    const product = Product.getProductById(productId);
+    const productPrice = product.price;
+
+    Cart.deleteProduct(productId, productPrice);
+    return res.redirect('/cart');
+};
+
 exports.getOrders = (req, res, next) => {
     res.render('shop/orders', {
         pageTitle: 'Your Orders',

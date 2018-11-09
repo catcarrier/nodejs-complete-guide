@@ -46,5 +46,26 @@ module.exports = class Cart {
         getCartContentsFromFile(cb);
     }
 
+    static deleteProduct(id, price) {
+
+        getCartContentsFromFile( cart => {
+            // is this product in the cart? If no, bail out.
+            const productIndex = cart.products.findIndex(p => p.id===id);
+
+            if(productIndex===-1) { return; }
+
+            // make a copy and get the product
+            // Note the assumption that the product appears just once, irrespective of qty
+            const updatedCart = {...cart};
+            const product = updatedCart.products.find(p => p.id===id);
+            const quantity = product.quantity;
+
+            // Decrement the total price, and filter that product out of the products array
+            updatedCart.totalPrice -= quantity * Number.parseFloat(price);
+            updatedCart.products = updatedCart.products.filter(p => p.id != id);
+
+            Cart.save(updatedCart);
+        } );
+    }
 
 }
