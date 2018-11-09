@@ -53,19 +53,18 @@ module.exports = class Cart {
             if(cart.products.length < 1) {return;}
 
             // is this product in the cart? If no, bail out.
-            const productIndex = cart.products.findIndex(p => p.id===id);
+            const product = cart.products.find(p => p.id===id);
+            if(!product) { return; }
 
-            if(productIndex===-1) { return; }
-
-            // make a copy and get the product
+            // make a copy of the cart
             // Note the assumption that the product appears just once, irrespective of qty
             const updatedCart = {...cart};
-            const product = updatedCart.products.find(p => p.id===id);
             const quantity = product.quantity;
 
-            // Decrement the total price, and filter that product out of the products array
+            // Filter that product out of the products array.
+            // Decrement the total price.
             updatedCart.totalPrice -= quantity * Number.parseFloat(price);
-            updatedCart.products = updatedCart.products.filter(p => p.id != id);
+            updatedCart.products = updatedCart.products.filter(p => p.id != product.id);
 
             Cart.save(updatedCart);
         } );
