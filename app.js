@@ -5,6 +5,8 @@ const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 const notFoundRoutes = require('./routes/404');
 
+const mongo = require('./util/database_mongo');
+
 const bodyParser = require('body-parser');
 
 const app = express();
