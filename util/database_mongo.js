@@ -1,11 +1,12 @@
 const MongoClient = require('mongodb').MongoClient;
-const uri = 'mongodb://localhost:27017/test';
-let _db;
+const uri = 'mongodb://localhost:27017/shop';
+let _client;
 
-const connectDB = async (callback) => {
+// TODO how to handle lost connection
+const connect = async (callback) => {
     try {
-        MongoClient.connect(uri, (err, db) => {
-            _db = db;
+        MongoClient.connect(uri, {useNewUrlParser:true}, (err, client) => {
+            _client = client;
             return callback(err);
         })
     } catch (e) {
@@ -13,9 +14,8 @@ const connectDB = async (callback) => {
     }
 }
 
-const getDB = () => _db;
+const getClient = () => _client;
 
-// can disconnect cleanly if you want to
-const disconnectDB = () => _db.close();
+const disconnect = () => _db.close();
 
-module.exports = { connectDB, getDB, disconnectDB }
+module.exports = { connect, getClient, disconnect }

@@ -21,4 +21,14 @@ app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(notFoundRoutes);
 
-app.listen(3000);
+mongo.connect( err => {
+    
+    if(!err) {
+        const client = mongo.getClient();
+        app.listen(3000);
+    } else {
+        console.log(err); // TODO listen to mongo events, reconnect as needed
+    }
+} )
+
+
