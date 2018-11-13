@@ -18,7 +18,6 @@ exports.getProducts = (req, res, next) => {
 };
 
 exports.getProduct = (req, res, next) => {
-    //console.log('shop controller|getProduct, productId is ', req.params.productId);
     const productId = req.params.productId;
     Product.getProductById(productId)
         .then(
@@ -76,9 +75,14 @@ exports.getCart = (req, res, next) => {
 
 exports.getAddToCart = (req, res, next) => {
     const productId = req.body.productId;
-    const productPrice = Number.parseFloat(req.body.productPrice);
-    Cart.addProduct(productId, productPrice);
-    res.redirect('/cart');
+    //const productPrice = Number.parseFloat(req.body.productPrice);
+    Cart.addProduct(productId)
+        .then( () => {
+            return res.redirect('/cart');
+        })
+        .catch( (err) => {
+            console.log(err);
+        })
 };
 
 exports.getRemoveFromCart = (req, res, next) => {
@@ -98,7 +102,6 @@ exports.getOrders = (req, res, next) => {
         path: '/orders'
     });
 };
-
 
 exports.getCheckout = (req, res, next) => {
     res.render('shop/checkout', {

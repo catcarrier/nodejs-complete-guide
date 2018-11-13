@@ -1,9 +1,10 @@
 const Cart = require('./cart');
 const getDb = require('./../util/database_mongo').getDb;
+const mongodb = require('mongodb');
 
 class Product {
-    constructor(id /* or null */, title, imageUrl, description, price) {
-        this.id = id,
+    constructor( title, imageUrl, description, price ) {
+        //this._id = id,
         this.title = title;
         this.imageUrl = imageUrl;
         this.description = description;
@@ -13,35 +14,32 @@ class Product {
     save() {
         const db = getDb();
         const productsCollection = db.collection('products');
+        const test = require('assert');
 
-        // Out object uses 'id' but mongo calls it _id.
-        // replace 'id' with '_id' before saving to mongo.
-        var updatedProduct = { ...this };
-        updatedProduct._id = updatedProduct.id;
-        delete updatedProduct.id;
-
-        if (!updatedProduct.id) {
-            /* No id - is new product - do an insert */
-            return new Promise((resolve, reject) => {
-                productsCollection.insertOne(updatedProduct, {}, (err, result) => {
-                    if (err) {
-                        reject(err.message);
-                    } else {
-                        resolve();
-                    }
-                });
-            });
+        /**
+         * If this is an object we created and are now inserting,
+         * _id will be undefined.
+         * If this is a product we fetched from mongo, _id will
+         * be an object id as a string.
+         */ 
+        if (!updatedProduct._id) {
+            return db.collection('products')
+                .insertOne(updatedProduct)
+                .then( r => {
+                    test.equal(1, r.insertedCount);
+                })
+                .catch( err => {
+                    console.log(err);
+                } );
         } else {
-            /* not null -> is existing product, do update */
-            return new Promise((resolve, reject) => {
-                productsCollection.findOneAndReplace({ _id: new require('mongodb').ObjectID(updatedProduct._id) }, this, (err, result) => {
-                    if (err) {
-                        reject(err.message);
-                    } else {
-                        resolve();
-                    }
-                });
-            });
+            return db.collection('products')
+                .findOneAndReplace({ _id: new mongodb.ObjectID(updatedProduct._id) })
+                .then( r => {
+                    test.equal(1, r.ok);
+                } )
+                .catch( err => {
+                    console.log(err);
+                } )
         };
     }
 
@@ -56,49 +54,33 @@ class Product {
             })
             .catch(err => {
                 console.log(err);
+                throw err;
             });
     }
 
     static getProductById(id) {
-        return new Promise((resolve, reject) => {
-            const db = getDb();
-            const productsCollection = db.collection('products');
-            productsCollection.findOne({ _id: new require('mongodb').ObjectID(id) }, {}, (err, result) => {
-                if (!err) {
-                    const product = new Product(
-                        result._id,
-                        result.title,
-                        result.imageUrl,
-                        result.description,
-                        result.price);
-                    return resolve(product);
-                } else {
-                    return reject(err);
-                }
-            });
-        });
+        const db = getDb();
+        return db.collection('products')
+            .findOne({ _id: new mongodb.ObjectID(id) })
+            .then( product => product )
+            .catch( err => console.log(err) );
     }
 
     static removeById(id) {
-        return new Promise((resolve, reject) => {
-            // TODO
-
-
-        })
-
-
-        // Product.fetchAll(products => {
-        //     const product = products.find(p => p.id === id);
-        //     const productPrice = product.price; // need this to update the cart
-        //     const updatedProducts = products.filter(p => p.id != id);
-        //     fs.writeFile(p, JSON.stringify(updatedProducts), err => {
-        //         if (!err) {
-        //             Cart.deleteProduct(id, productPrice);
-        //         }
-        //     });
-        // });
-
-
+        const db = getDb();
+        return db.collection('products').findOne({_id: new mongodb.ObjectID(id) })
+            .then( product => {
+                console.log('Product.removeById got product ' + product.description);
+                return product.price; // need this to update the cart 
+            } )
+            .then( productPrice => {
+                console.log('Product.removeById got productPrice ' + productPrice);
+                return Cart.deleteProduct(id, productPrice);
+            } )
+            .catch( err => {
+                console.log(err);
+                throw err;
+            });
     }
 }
 

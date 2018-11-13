@@ -1,132 +1,124 @@
-const Client = require('./../util/database_mongo');
+const getDb = require('./../util/database_mongo').getDb;
 const mongo = require('mongodb');
-
 
 module.exports = class Cart {
 
-    static addProduct(id, productPrice) {
+    static addProduct(id) {
+        const db = getDb();
+        // console.log('Cart.addProduct starting...');
 
-        //console.log("addProduct:", id, productPrice);
+        // look up the product, to confirm it exists, and get the price
+        return db.collection('products').findOne({ _id: new require('mongodb').ObjectID(id) })
+            .then(product => {
+                // console.log('Cart.addProduct got product ' + product.description);
+                return product;
+            })
+            .then(product => {
+                // console.log('Cart.addProduct fetching cart...');
+                return Cart.getCart()
+                    .then(cart => {
+                        // console.log('Cart.addProduct got cart:');
+                        // console.log(cart);
+                        // console.log('Cart.addProduct product is ' + product);
 
-        return new Promise((resolve, reject) => {
+                        // Is this product in the cart? Need to adjust total price.
+                        const existingProductIndex = cart.products.findIndex(prod => prod._id === id);
+                        const existingProduct = cart.products[existingProductIndex];
 
-            // Get the cart
-            Cart.fetchAll()
-                .then((cart) => {
-
-                    // Check that this product 
-                    const client = Client.getClient();
-                    const productCollection = client.db().collection('products');
-                    productCollection.findOne({ _id: new require('mongodb').ObjectID(id) }, {}, (err, result) => {
-
-                        //console.log('Product.addProduct, findOne result =>', result);
-
-                        if (err) {
-                            return reject(err);
-                        } else if (!result) {
-                            return reject('No such product');
+                        // If product is in cart, replace with a copy with an incremented quantity
+                        if (existingProduct) {
+                            var updatedProduct = { ...existingProduct };
+                            updatedProduct.quantity = updatedProduct.quantity + 1;
+                            cart.products[existingProductIndex] = updatedProduct;
+                        } else {
+                            var newProduct = { _id: id, quantity: 1 };
+                            cart.products = [...cart.products, newProduct];
                         }
-                    });
 
-                    // Get the index of this product in the cart.
-                    const existingProductIndex = cart.products.findIndex(prod => prod._id === id);
+                        cart.totalPrice = cart.totalPrice + product.price;
 
-                    //console.log('existingProductIndex', existingProductIndex);
+                        //console.log('cart is now ', cart);
 
-                    const existingProduct = cart.products[existingProductIndex];
-
-                    //console.log('existingProduct', existingProduct);
-
-                    if (existingProduct) {
-                        var updatedProduct = { ...existingProduct };
-                        updatedProduct.quantity = updatedProduct.quantity + 1;
-                        cart.products[existingProductIndex] = updatedProduct;
-                    } else {
-                        var newProduct = { _id: id, quantity: 1 };
-                        cart.products = [...cart.products, newProduct];
-                    }
-
-                    cart.totalPrice = cart.totalPrice + productPrice;
-
-                    //console.log('cart is now ', cart);
-
-                    Cart.save(cart);
-                    resolve();
-                })
-                .catch( err => { 
-                    reject(err)
-                });
-        }); // Promise
-    }; // fx addProduct
+                        Cart.save(cart);
+                    })
+            })
+            .catch(err => {
+                console.log(err);
+                throw err;
+            })
+    };
 
     static save(cart) {
-        const client = Client.getClient();
-        const cartCollection = client.db().collection('cart');
-        cartCollection.findOneAndDelete({}, (err, result) => {
-            cartCollection.insertOne(cart, {}, (err, result) => {
-                if(err) { console.log(err) }
+        const db = getDb();
+        const collection = db.collection('cart');
+        collection.findOneAndDelete({})
+            .then( () => {
+                collection.insertOne(cart);
             })
-        })
+            .catch( err => {
+                console.log(err);
+            } )
     }
 
-    static fetchAll() {
-        const client = Client.getClient();
-        const cartCollection = client.db().collection('cart');
-        return new Promise((resolve, reject) => {
-            cartCollection.findOne({}, (err, result) => {
-                if (!err) {
-                    if (result) {
-                        resolve(result);
-                    } else {
-                        resolve({ _id: null, products: [], totalPrice: 0 })
-                    }
-                } else {
-                    reject(err);
-                }
-            });
-        });
-    }
+    // static fetchAll() {
+    //     const db = getDb();
+    //     return db.collection('cart').findOne({})
+    //         .then(cart => {
+    //             if (cart) {
+    //                 return cart;
+    //             } else {
+    //                 return { products: [], totalPrice: 0 }; // empty cart
+    //             }
+    //         })
+    //         .catch(err => {
+    //             console.log(err);
+    //             throw err
+    //         });
+    // }
 
     static deleteProduct(id, price) {
+        const db = getDb();
+        db.collection('cart').findOne({})
+            .then(cart => {
+                // if there is no cart
+                if (!cart) { return; }
 
-        getCartContentsFromFile(cart => {
+                // or if contains no products
+                if (cart.products.length < 1) { return; }
 
-            if (cart.products.length < 1) { return; }
+                // is this product in the cart? If no, bail out.
+                const product = cart.products.find(p => p._id === id);
+                if (!product) { return; }
 
-            // is this product in the cart? If no, bail out.
-            const product = cart.products.find(p => p.id === id);
-            if (!product) { return; }
+                // make a copy of the cart
+                // Note the assumption that the product appears just once, irrespective of qty
+                const updatedCart = { ...cart };
+                const quantity = product.quantity;
 
-            // make a copy of the cart
-            // Note the assumption that the product appears just once, irrespective of qty
-            const updatedCart = { ...cart };
-            const quantity = product.quantity;
+                // Filter that product out of the products array.
+                // Decrement the total price.
+                updatedCart.totalPrice -= quantity * Number.parseFloat(price);
+                updatedCart.products = updatedCart.products.filter(p => p._id != product._id);
 
-            // Filter that product out of the products array.
-            // Decrement the total price.
-            updatedCart.totalPrice -= quantity * Number.parseFloat(price);
-            updatedCart.products = updatedCart.products.filter(p => p.id != product.id);
-
-            Cart.save(updatedCart);
-        });
+                return Cart.save(updatedCart);
+            })
+            .catch(err => {
+                console.log(err);
+            })
     }
 
     static getCart() {
-        const client = Client.getClient();
-        const cartCollection = client.db().collection('cart');
-        return new Promise((resolve, reject) => {
-            cartCollection.findOne({}, (err, result) => {
-                if (!err) {
-                    console.log(result);
-                    if (!result) {
-                        resolve({ "products": [], "totalPrice": 0 });
-                    } else {
-                        resolve(result);
-                    }
-                } else {
-                    reject(err);
+        const db = getDb();
+        return db.collection('cart').findOne({})
+            .then(cart => { 
+                if(cart) {
+                    return cart;
+                } else { 
+                    return { "products": [], "totalPrice": 0 };
                 }
-            });
-        });
+            })
+            .catch(err => {
+                console.log('Cart.getCart: No cart found. Returning an empty cart.');
+            })
     }
 }
