@@ -1,21 +1,27 @@
 const MongoClient = require('mongodb').MongoClient;
 const uri = 'mongodb://localhost:27017/shop';
-let _client;
 
-// TODO how to handle lost connection
-const connect = async (callback) => {
-    try {
-        MongoClient.connect(uri, {useNewUrlParser:true}, (err, client) => {
-            _client = client;
-            return callback(err);
+let _db;
+
+const mongoConnect = (cb) => {
+    MongoClient.connect(uri, {useNewUrlParser:true})
+        .then( client => {
+            _db = client.db();
+            cb();
         })
-    } catch (e) {
-        throw e
+        .catch( err => {
+            console.log(err);
+            throw err;
+        });
+}
+
+const getDb = () => {
+    if(_db) { 
+        return _db; 
+    } else {
+        throw 'No database found';
     }
 }
 
-const getClient = () => _client;
-
-const disconnect = () => _db.close();
-
-module.exports = { connect, getClient, disconnect }
+exports.mongoConnect = mongoConnect;
+exports.getDb = getDb;

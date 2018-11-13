@@ -5,7 +5,7 @@ const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 const notFoundRoutes = require('./routes/404');
 
-const mongo = require('./util/database_mongo');
+const mongoConnect = require('./util/database_mongo').mongoConnect;
 
 const bodyParser = require('body-parser');
 
@@ -21,14 +21,8 @@ app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(notFoundRoutes);
 
-mongo.connect( err => {
-    
-    if(!err) {
-        const client = mongo.getClient();
-        app.listen(3000);
-    } else {
-        console.log(err); // TODO listen to mongo events, reconnect as needed
-    }
-} )
+mongoConnect( () => {
+    app.listen(3000);
+})
 
 
