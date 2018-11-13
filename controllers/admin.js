@@ -11,19 +11,21 @@ exports.getAddProduct = (req, res, next) => {
 };
 
 exports.postAddProduct = (req, res, next) => {
-    const id = null; /* will be assigned by the model upon insert */
     const title = req.body.title;
     const imageUrl = req.body.imageUrl;
     const description = req.body.description;
     const price = Number.parseFloat(req.body.price);
 
     const product = new Product(
-        id,
         title,
         imageUrl,
         description,
-        price
+        price,
+        null, // id
+        req.user._id
     );
+
+    //console.log('saving ', product)
     product.save()
         .then(res.redirect('/'))
         .catch(err => console.log(err));
@@ -52,12 +54,13 @@ exports.getEditProduct = (req, res, next) => {
 };
 
 exports.postEditProduct = (req, res, next) => {
-    const productId = req.body.productId;
     const title = req.body.title;
     const imageUrl = req.body.imageUrl;
     const description = req.body.description;
     const price = req.body.price;
-    const product = new Product(productId, title, imageUrl, description, price);
+    const productId = req.body.productId;
+
+    const product = new Product(title, imageUrl, description, price, productId);
     product.save()
         .then( () => {
             return res.redirect('/admin/products');
