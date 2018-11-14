@@ -17,9 +17,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Insert a dummy user into the request
 // TODO back this out when adding authentication
 app.use( (req, res, next) => {
-    User.findById("5beb4c7eb643ca9904122437")
+    User.findById("5beb8feeb37097168acc95a3")
         .then( user => {
-            req.user = user;
+            // mongo just gives us the objectid. We need a User object instead.
+            req.user = new User(user.name, user.email, user.cart, user._id);
+            //console.log(req.user);
             next();
         } )
         .catch( err => {

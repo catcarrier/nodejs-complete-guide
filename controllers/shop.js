@@ -73,10 +73,27 @@ exports.getCart = (req, res, next) => {
     });
 };
 
-exports.getAddToCart = (req, res, next) => {
-    const productId = req.body.productId;
-    //const productPrice = Number.parseFloat(req.body.productPrice);
-    Cart.addProduct(productId)
+// exports.getAddToCart = (req, res, next) => {
+//     const productId = req.body.productId;
+//     //const productPrice = Number.parseFloat(req.body.productPrice);
+//     Cart.addProduct(productId)
+//         .then( () => {
+//             return res.redirect('/cart');
+//         })
+//         .catch( (err) => {
+//             console.log(err);
+//         })
+// };
+
+exports.postCart = (req, res, next) => {
+    const prodId = req.body.productId;
+    Product.getProductById(prodId)
+        .then(product => {
+            return req.user.addToCart(product)     
+        })
+        // .then( result => {
+        //     console.log(result);
+        // } )
         .then( () => {
             return res.redirect('/cart');
         })
