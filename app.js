@@ -14,13 +14,20 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Insert a dummy user into the request
+// Insert a user into the request, to simulate an authenticated user.
 // TODO back this out when adding authentication
 app.use( (req, res, next) => {
-    User.findById("5beb8feeb37097168acc95a3")
+    User.findById("5beb4c7eb643ca9904122437")
         .then( user => {
-            // mongo just gives us the objectid. We need a User object instead.
-            req.user = new User(user.name, user.email, user.cart, user._id);
+            // mongo just gives us an object containing the objectid, name etc. 
+            // We need a User object instead so we can invoke methods.
+
+            // console.log("cart is ", user.cart);
+            // console.log( user.cart.items[0].productId instanceof require('mongodb').ObjectId );
+
+            
+
+            req.user = new User(user.name, user.email, user.cart || null, user._id);
             //console.log(req.user);
             next();
         } )
