@@ -20,7 +20,8 @@ exports.postAddProduct = (req, res, next) => {
         title: title,
         price: price,
         description: description,
-        imageUrl: imageUrl
+        imageUrl: imageUrl,
+        userId: req.user._id
     });
 
     //console.log('saving ', product)
@@ -91,8 +92,12 @@ exports.postDeleteProduct = (req, res, next) => {
 exports.getAllProducts = (req, res, next) => {
     Product
         .find()
+        //.select('title price -_id')
+        //.populate('userId', 'cart name')
+        //.execPopulate()
         .exec()
         .then(products => {
+            console.log(products)
             return res.render('admin/products', {
                 pageTitle: "Admin Products",
                 path: "/admin/products",

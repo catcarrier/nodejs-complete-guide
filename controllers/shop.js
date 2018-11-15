@@ -51,43 +51,38 @@ exports.getIndex = (req, res, next) => {
 };
 
 exports.getCart = (req, res, next) => {
+    // req.user.cart.items.productId is an ObjectId. By populating it,
+    // we replace its hex value with a copy of the matching product.
+    // The product will have the properties not in the cart -- for 
+    // example title and description
+    // 
+    // To expose those properties to the view, iterate over the
+    // objects in the new items array and return a new object,
+    // pulling down the product properties from under 'productId'.
     req.user
-        .getCart()
-        .then(products => {
-            //console.log(products);
-            res.render('shop/cart', {
+        .populate('cart.items.productId')
+        .execPopulate()
+        .then(user => {
+            const newItems = user.cart.items.map(i => {
+                return {
+                    _id: i._id,
+                    productId: i.productId._id,
+                    quantity: i.quantity,
+                    title: i.productId.title, /* <-- pull down*/
+                    price: i.productId.price, 
+                    description: i.productId.description,
+                    imageUrl: i.productId.imageUrl
+                }
+            })
+            return newItems;
+        })
+        .then(enrichedItems => {
+            return res.render('shop/cart', {
                 pageTitle: 'Your Cart',
                 path: '/cart',
-                products: products
+                products: enrichedItems
             });
-
         })
-        .catch(err => {
-            console.log(err);
-        })
-
-    // Cart.getCart(cart => {
-    //     Product.fetchAll(products => {
-    //         // For each product that is also in the cart, return a hybrid object
-    //         // combining the product (from Product) with the quantity (from Cart)
-    //         const cartProducts = [];
-    //         for (product of products) {
-    //             const cartProductData = cart.products.find(p => p.id === product.id);
-    //             if (cartProductData) {
-    //                 cartProducts.push({
-    //                     productData: product,
-    //                     quantity: cartProductData.quantity
-    //                 });
-    //             };
-    //         }
-    //         res.render('shop/cart', {
-    //             pageTitle: 'Your Cart',
-    //             path: '/cart',
-    //             products: cartProducts
-    //         });
-    //     })
-
-    // });
 };
 
 // exports.getAddToCart = (req, res, next) => {
@@ -104,7 +99,7 @@ exports.getCart = (req, res, next) => {
 
 exports.postCart = (req, res, next) => {
     const prodId = req.body.productId;
-    Product.getProductById(prodId)
+    Product.findById(prodId)
         .then(product => {
             return req.user.addToCart(product);
         })
@@ -120,7 +115,7 @@ exports.postCart = (req, res, next) => {
 };
 
 exports.getRemoveFromCart = (req, res, next) => {
-    const productId = new mongo.ObjectId(req.body.productId);
+    const productId = req.body.productId;
     req.user.removeFromCart(productId)
         .then(result => {
             return res.redirect('/cart');
