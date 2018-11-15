@@ -17,7 +17,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Insert a user into the request, to simulate an authenticated user.
 // TODO back this out when adding authentication
 app.use( (req, res, next) => {
-    User.findById("5beb4c7eb643ca9904122437")
+    User.findById("5beb8feeb37097168acc95a3")
         .then( user => {
             // mongo just gives us an object containing the objectid, name etc. 
             // We need a User object instead so we can invoke methods.

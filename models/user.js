@@ -132,9 +132,6 @@ class User {
             });
     }
 
-    /**
-     * Return the items port
-     */
     getOrders() {
         const db = getDb();
         return db.collection('orders')
