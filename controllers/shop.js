@@ -1,9 +1,9 @@
 const Product = require('../models/product');
-const Cart = require('../models/cart');
-const mongo = require('mongodb');
+
+//const mongo = require('mongodb');
 
 exports.getProducts = (req, res, next) => {
-    Product.fetchAll()
+    Product.find()
         .then(
             products => {
                 res.render('shop/product-list', {
@@ -20,9 +20,10 @@ exports.getProducts = (req, res, next) => {
 
 exports.getProduct = (req, res, next) => {
     const productId = req.params.productId;
-    Product.getProductById(productId)
+    Product.findById(productId)
         .then(
             product => {
+                console.log(product);
                 return res.render('shop/product-detail', {
                     product: product,
                     pageTitle: product.title,
@@ -36,7 +37,7 @@ exports.getProduct = (req, res, next) => {
 };
 
 exports.getIndex = (req, res, next) => {
-    Product.fetchAll()
+    Product.find()
         .then(products => {
             res.render('shop/index', {
                 prods: products,
