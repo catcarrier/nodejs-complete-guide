@@ -35,7 +35,7 @@ userSchema.methods.addToCart = function (product) {
         updatedCart.items.push(cartItem);
     }
     this.cart = updatedCart;
-    return this.save()
+    return this.save();
 }
 
 userSchema.methods.removeFromCart = function (productId) {
@@ -44,87 +44,9 @@ userSchema.methods.removeFromCart = function (productId) {
     return this.save();
 }
 
-userSchema.methods.addOrder = function () {
-    if (this.cart.length < 1) { return; }
-
-    const order = new Order({
-        user: {
-            userId: this._id
-        },
-        items: [...this.cart.items]
-    });
-
-    return order.save()
-        .then( result => {
-            this.cart.items.length=0;
-            return this.save();
-        } )
-        .catch(err => {
-            console.log(err);
-        })
-}
-
-/**
- * Return the orders for this, marked up with additional details
- * from the product collection.
- */
-userSchema.methods.getOrders = function() {
-    return Order.find({'user.userId': this._id})
-        .exec()
-        .then( orders => {
-            //console.log(orders);
-
-            // work off a temporary copy
-            const tempOrders = [...orders];
-
-            // add the product title, description...
-            tempOrders.forEach(order => {
-                order.items.forEach(item => {
-                    Product.findOne({_id:item.productId})
-                        .exec()
-                        .then( product=> {
-                            console.log('found matching product ', product)
-                            item.title = product.title;
-                            item.price = product.price;
-                            item.description = product.description;
-                            item.imageUrl = product.imageUrl;
-
-                            console.log('item is now ', item)
-                        } );
-                });
-            });
-
-            tempOrders.forEach( o => {
-                o.items.forEach(i => {
-                    console.log(i)
-                })
-            });
-            
-
-
-
-            return tempOrders
-        } )
-        .catch(err => {
-            console.log(err);
-        })
+userSchema.methods.clearCart = function(){
+    this.cart.items = [];
+    return this.save();
 }
 
 module.exports = mongoose.model('User', userSchema);
-
-
-//     getOrders() {
-//         const db = getDb();
-//         return db.collection('orders')
-//             .find({ 'user.userId': this._id })
-//             .toArray()
-//             .then(orders => {
-//                 return orders;
-//             })
-    // }
-
-//     static findById(id) {
-//         const db = getDb();
-//         return db.collection('users').findOne({ _id: new mongo.ObjectID(id) });
-//     }
-// }
