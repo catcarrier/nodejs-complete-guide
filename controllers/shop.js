@@ -1,6 +1,5 @@
 const Product = require('../models/product');
 const Order = require('../models/order');
-//const mongo = require('mongodb');
 
 exports.getProducts = (req, res, next) => {
     Product.find()

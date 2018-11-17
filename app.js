@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
+const authRoutes = require('./routes/auth');
 const notFoundRoutes = require('./routes/404');
 //const mongoConnect = require('./util/database_mongo').mongoConnect;
 const bodyParser = require('body-parser');
@@ -18,9 +19,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Insert a user into the request, to simulate an authenticated user.
 // TODO back this out when adding authentication
 app.use( (req, res, next) => {
-    User.findById("5bedb08307f70634b8b4f8fd")
+    User.findById("5beb8feeb37097168acc95a3")
         .exec()
         .then( user => {
+            //console.log(user)
             req.user = user;
             next();
         } )
@@ -32,6 +34,7 @@ app.use( (req, res, next) => {
 
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
+app.use(authRoutes);
 app.use(notFoundRoutes);
 
 mongoose.connect('mongodb://localhost:27017/shop')
