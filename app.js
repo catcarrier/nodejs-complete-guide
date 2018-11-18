@@ -36,10 +36,12 @@ app.use(session({
 app.use((req, res, next) => {
 
     // If the user is not logged in, do nothing
-    if (!req.session.user) {
+    if (!req.session.user /* this is just the mongo row, not a User object */) {
         return next();
     }
 
+    // req.sesson.user is not a User object, it's just the row returned from mongo.
+    // We need a User object, attached to the request, to call methods on.
     User.findById(req.session.user._id)
         .exec()
         .then(user => {
@@ -50,6 +52,7 @@ app.use((req, res, next) => {
             console.log(err);
             return next();
         });
+
 })
 
 app.use('/admin', adminRoutes);
@@ -59,15 +62,6 @@ app.use(notFoundRoutes);
 
 mongoose.connect(MONGDB_URI)
     .then((result) => {
-
-        // a mocked-up user for testing
-        // const user = new User({
-        //     name:"Bill",
-        //     email:"bill@test.com",
-        //     cart: []
-        // });
-        // user.save();
-
         app.listen(3000);
     })
     .catch(err => {

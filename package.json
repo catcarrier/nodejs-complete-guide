@@ -4,6 +4,7 @@
   "description": "Maximilian Complete Node.js guide walkthrough",
   "main": "app.js",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "body-parser": "^1.18.3",
     "connect-mongodb-session": "^2.0.5",
     "ejs": "^2.6.1",

@@ -5,8 +5,15 @@ const Order = require('./order');
 const Product = require('./product');
 
 const userSchema = new Schema({
-    name: { type: String, required: true },
-    email: { type: String, required: true },
+    //name: { type: String, required: true },
+    email: { 
+        type: String, 
+        required: true 
+    },
+    password: {
+        type: String,
+        required: true
+    },
     cart: {
         items: [{
             productId: {
