@@ -1,5 +1,4 @@
 const Product = require('../models/product');
-// const Cart = require('../models/cart');
 
 exports.getAddProduct = (req, res, next) => {
     res.render('admin/edit-product', {
@@ -24,7 +23,6 @@ exports.postAddProduct = (req, res, next) => {
         imageUrl: imageUrl,
         userId: req.user._id
     });
-
     product.save()
         .then(res.redirect('/'))
         .catch(err => console.log(err));
@@ -91,6 +89,7 @@ exports.postDeleteProduct = (req, res, next) => {
 }
 
 exports.getAllProducts = (req, res, next) => {
+
     Product
         .find()
         //.select('title price -_id')
@@ -101,7 +100,8 @@ exports.getAllProducts = (req, res, next) => {
             return res.render('admin/products', {
                 pageTitle: "Admin Products",
                 path: "/admin/products",
-                prods: products
+                prods: products,
+                isAuthenticated: req.session.isLoggedIn
             })
         })
         .catch(err => {

@@ -4,41 +4,61 @@ const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 const authRoutes = require('./routes/auth');
 const notFoundRoutes = require('./routes/404');
-//const mongoConnect = require('./util/database_mongo').mongoConnect;
 const bodyParser = require('body-parser');
 const User = require('./models/user');
 const mongoose = require('mongoose');
+const session = require('express-session');
+const mongodbStore = require('connect-mongodb-session')(session);
 const app = express();
+const MONGDB_URI = 'mongodb://localhost:27017/shop';
+const sessionStore = new mongodbStore({
+    uri: MONGDB_URI,
+    collection: 'sessions'
+});
 
 app.set('view engine', 'ejs');
 //app.set('views','views'); // the default, ok to omit
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(session({
+    secret: "someone set us up the bomb",
+    resave: false,
+    saveUninitialized: false,
+    store: sessionStore
+}));
 
-// Insert a user into the request, to simulate an authenticated user.
-// TODO back this out when adding authentication
-app.use( (req, res, next) => {
-    User.findById("5beb8feeb37097168acc95a3")
+// sessionStore does not know about Mongoose, so the session.user object,
+// even if it exists (that is, session has not been destroyed), is not an
+// instance of the User class, so we cannot call methods or get the cart etc.
+// Here we rebuild the User object via the User class, starting from the
+// session.user._id.
+app.use((req, res, next) => {
+
+    // If the user is not logged in, do nothing
+    if (!req.session.user) {
+        return next();
+    }
+
+    User.findById(req.session.user._id)
         .exec()
-        .then( user => {
-            //console.log(user)
+        .then(user => {
             req.user = user;
-            next();
-        } )
-        .catch( err => {
+            return next();
+        })
+        .catch(err => {
             console.log(err);
-            next();
+            return next();
         });
-} )
+})
 
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
 app.use(notFoundRoutes);
 
-mongoose.connect('mongodb://localhost:27017/shop')
-    .then( (result) => {
+mongoose.connect(MONGDB_URI)
+    .then((result) => {
 
         // a mocked-up user for testing
         // const user = new User({
@@ -50,6 +70,6 @@ mongoose.connect('mongodb://localhost:27017/shop')
 
         app.listen(3000);
     })
-    .catch( err => {
+    .catch(err => {
         console.log(err);
     })

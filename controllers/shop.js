@@ -8,7 +8,8 @@ exports.getProducts = (req, res, next) => {
                 res.render('shop/product-list', {
                     prods: products,
                     pageTitle: 'All Products',
-                    path: '/products'
+                    path: '/products',
+                    isAuthenticated: req.session.isLoggedIn
                 });
             }
         )
@@ -22,11 +23,11 @@ exports.getProduct = (req, res, next) => {
     Product.findById(productId)
         .then(
             product => {
-                console.log(product);
                 return res.render('shop/product-detail', {
                     product: product,
                     pageTitle: product.title,
-                    path: '/products'
+                    path: '/products',
+                    isAuthenticated: req.session.isLoggedIn
                 });
             }
         )
@@ -41,7 +42,8 @@ exports.getIndex = (req, res, next) => {
             res.render('shop/index', {
                 prods: products,
                 pageTitle: 'Shop',
-                path: '/'
+                path: '/',
+                isAuthenticated: req.session.isLoggedIn
             });
         })
         .catch(err => {
@@ -50,7 +52,7 @@ exports.getIndex = (req, res, next) => {
 };
 
 exports.getCart = (req, res, next) => {
-    // req.user.cart.items.productId is an ObjectId. By populating it,
+    // user.cart.items.productId is an ObjectId. By populating it,
     // we replace its hex value with a copy of the matching product.
     // The product will have the properties not in the cart -- for 
     // example title and description
@@ -79,7 +81,8 @@ exports.getCart = (req, res, next) => {
             return res.render('shop/cart', {
                 pageTitle: 'Your Cart',
                 path: '/cart',
-                products: enrichedItems
+                products: enrichedItems,
+                isAuthenticated: req.session.isLoggedIn
             });
         })
 };
@@ -90,9 +93,6 @@ exports.postCart = (req, res, next) => {
         .then(product => {
             return req.user.addToCart(product);
         })
-        // .then( result => {
-        //     console.log(result);
-        // } )
         .then(() => {
             return res.redirect('/cart');
         })
@@ -157,12 +157,12 @@ exports.postOrder = (req, res, next) => {
             return req.user.clearCart()
         })
         .then(result => {
-                    return res.redirect('/orders')
+            return res.redirect('/orders')
         })
-        .catch (err => {
-    console.log(err);
-    res.redirect('/cart');
-})
+        .catch(err => {
+            console.log(err);
+            res.redirect('/cart');
+        })
 };
 
 exports.getOrders = (req, res, next) => {
@@ -201,7 +201,8 @@ exports.getOrders = (req, res, next) => {
             return res.render('shop/orders', {
                 pageTitle: 'Your Orders',
                 path: '/orders',
-                orders: orders
+                orders: orders,
+                isAuthenticated: req.session.isLoggedIn
             });
         })
         .catch(err => {
@@ -213,6 +214,7 @@ exports.getOrders = (req, res, next) => {
 exports.getCheckout = (req, res, next) => {
     res.render('shop/checkout', {
         pageTitle: 'Checkout',
-        path: '/checkout'
+        path: '/checkout',
+        isAuthenticated: req.session.isLoggedIn
     });
 };
