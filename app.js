@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const csrf = require('csurf'); // anti-CSRF middleware
 const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 const authRoutes = require('./routes/auth');
@@ -9,6 +10,7 @@ const User = require('./models/user');
 const mongoose = require('mongoose');
 const session = require('express-session');
 const mongodbStore = require('connect-mongodb-session')(session);
+const flash = require('connect-flash');
 const app = express();
 const MONGDB_URI = 'mongodb://localhost:27017/shop';
 const sessionStore = new mongodbStore({
@@ -27,6 +29,15 @@ app.use(session({
     saveUninitialized: false,
     store: sessionStore
 }));
+
+// This middleware checks that any request that modifies
+// data on the host contains the csrf token.
+// Note that this has to be added after the session, above.
+const csrfProtector = csrf();
+app.use(csrfProtector);
+
+// helper middleware for sending messages to the user via the session
+app.use(flash());
 
 // sessionStore does not know about Mongoose, so the session.user object,
 // even if it exists (that is, session has not been destroyed), is not an
@@ -54,6 +65,18 @@ app.use((req, res, next) => {
         });
 
 })
+
+/**
+ * Here we send a csrf token with every response. The csrf middleware (see above)
+ * will check for a valid token in any post.
+ * This is equiv to passing {...csrfToken: req.csrfToken()} in every controller
+ * 
+ */
+app.use((req, res, next) => {
+    res.locals.isAuthenticated = req.session.isLoggedIn;
+    res.locals.csrfToken = req.csrfToken();
+    next();
+});
 
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);

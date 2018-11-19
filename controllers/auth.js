@@ -1,13 +1,23 @@
 const User = require('../models/user');
 const bcrypt = require('bcryptjs');
+//const flash = require('connect-flash');
 
 exports.getLogin = (req, res, next) => {
+
+    let message = req.flash('errorMessage');
+    if(message.length > 0) {
+        message = message[0];
+    } else {
+        message = null;
+    }
+
     res.render('auth/login', {
         path: 'login',
         pageTitle: 'Login',
-        isAuthenticated: false
+        errorMessage: message
     })
 }
+
 
 exports.postLogin = (req, res, next) => {
     const email = req.body.email;
@@ -15,26 +25,26 @@ exports.postLogin = (req, res, next) => {
     User.findOne({ email: email })
         .then(user => {
             if (!user) {
-                // TODO add error message that no such user
+
+                // Becuase we are redirecting, a new req/res will be created, and
+                // there is no way to put an error msg onto the user's page.
+                // This middleware inserts a msg into the session that persists until used.
+                // See getLogin().
+                req.flash('errorMessage', 'invalid email or password.');
                 return res.redirect('/login');
             }
 
-            console.log('starting password compare')
             bcrypt.compare(password, user.password)
                 .then(result => {
-                    console.log('compare -> ', result);
                     if (result) {
                         req.session.user = user;
                         req.session.isLoggedIn = true;
-                        console.log('saving the user...')
                         return req.session.save((err) => {
                             if (err) { console.log(err) }
-                            console.log('saving the user... done')
                             return res.redirect('/');
                         });
                     } else {
-                        console.log('redirecting to login')
-                        // TODO add error message that password does not match
+                        req.flash('errorMessage','Invalid username or password');
                         return res.redirect('/login');
                     }
                 })
@@ -57,10 +67,18 @@ exports.postLogout = (req, res, next) => {
 }
 
 exports.getSignup = (req, res, next) => {
+
+    let message = req.flash('errorMessage');
+    if(message.length > 0) {
+        message = message[0];
+    } else {
+        message = null;
+    }
+
     res.render('auth/signup', {
         path: '/signup',
         pageTitle: 'Signup',
-        isAuthenticated: false
+        errorMessage: message
     })
 }
 
@@ -69,14 +87,27 @@ exports.postSignup = (req, res, next) => {
     const password = req.body.password;
     const confirmPassword = req.body.confirmPassword;
 
-    // TODO validate
+    if(email.length < 1) {
+        req.flash('errorMessage','Email is required.');
+        return res.redirect('/signup');
+    }
+
+    if(password.length==0 || confirmPassword.length==0) {
+        req.flash('errorMessage','Type a non-blank value for password');
+        return res.redirect('/signup');
+    }
+
+    if(password !== confirmPassword) {
+        req.flash('errorMessage','Passwords must match');
+        return res.redirect('/signup')
+    }
 
     // Is there a user matching this info?
     User.findOne({ email: email })
         .exec()
         .then(user => {
             if (user) {
-                // TODO show an error message that user already defined
+                req.flash('errorMessage','Email already in use.');
                 return res.redirect('/signup')
             }
 
