@@ -12,7 +12,10 @@ router.post(
     '/login',
     [
         body('email')
-            .isEmail().withMessage('email is no good - bah!')
+            .isEmail()
+            .withMessage('email is not valid')
+            .trim()
+            .normalizeEmail()
             .custom(value => {
                 return User.findOne({ email: value })
                     .exec()
@@ -21,7 +24,8 @@ router.post(
                     })
             }),
         body('password', 'password must be at least 4 chars in length')
-            .isLength({ min: 4 })        
+            .isLength({ min: 4 })
+            .trim()     
     ],
     authController.postLogin);
 
@@ -34,6 +38,7 @@ router.post(
     [
         body('email')
             .isEmail().withMessage('email is invalid')
+            .normalizeEmail()
             .custom(value => {
                 return User.findOne({ email: value })
                     .exec()
@@ -41,13 +46,15 @@ router.post(
                         if (user) { return Promise.reject('Email is already in use.'); }
                     })
             }),
-        body('password', 'password must be at least 8 chars in length')
-            .isLength({ min: 8 }),
+        body('password', 'password must be at least 4 chars in length')
+            .trim()
+            .isLength({ min: 4 }),
         body('confirmPassword')
+            .trim()
             .custom((value, { req }) => {
                 if (value !== req.body.password) { throw new Error('Password must match Confirm Password') };
                 return true;
-            })   
+            })
     ],
     authController.postSignup);
 

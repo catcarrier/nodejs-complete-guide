@@ -25,27 +25,41 @@ exports.getLogin = (req, res, next) => {
     res.render('auth/login', {
         path: 'login',
         pageTitle: 'Login',
-        errorMessage: message
+        errorMessage: message,
+        userInputs: {
+            email: "",
+            password: ""
+        },
+        errors: []
     })
 }
 
-
 exports.postLogin = (req, res, next) => {
 
+    const email = req.body.email;
+    const password = req.body.password;
+
+    // If the route handler's validation found any problem...
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(422).render('auth/login', {
             path: '/login',
             pageTitle: 'Log in',
-            errorMessage: errors.array()[0].msg
+            errorMessage: errors.array()[0].msg,
+            errors: errors.array(),
+            userInputs: {
+                email: email,
+                password: password
+            },
         })
     }
 
-    const email = req.body.email;
-    const password = req.body.password;
-
     User.findOne({ email: email })
         .then(user => {
+            // Note that we are not checking whether the user exists here.
+            // We assume that the route handler for .post(/login) has
+            // already validated that, and bailed if any error was reported.
+            // See the if-block above.
             bcrypt.compare(password, user.password)
                 .then(result => {
                     if (result) {
@@ -56,8 +70,16 @@ exports.postLogin = (req, res, next) => {
                             return res.redirect('/');
                         });
                     } else {
-                        req.flash('errorMessage', 'Invalid username or password');
-                        return res.redirect('/login');
+                        return res.status(422).render('auth/login', {
+                            pageTitle: "Log in",
+                            path: '/login',
+                            userInputs: {
+                                email: email,
+                                password: password
+                            },
+                            errorMessage: "Invalid username or password.",
+                            errors: [{ param: "email" }, { param: "password" }]
+                        })
                     }
                 })
                 .catch(err => {
@@ -86,26 +108,39 @@ exports.getSignup = (req, res, next) => {
         message = null;
     }
 
+    // dummy values so ejs will not choke
     res.render('auth/signup', {
         path: '/signup',
         pageTitle: 'Signup',
-        errorMessage: message
+        errorMessage: message,
+        userInput: {
+            email: "",
+            password: "",
+            confirmPassword: ""
+        },
+        errors: []
     })
 }
 
 exports.postSignup = (req, res, next) => {
+
+    const email = req.body.email;
+    const password = req.body.password;
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(422).render('auth/signup', {
             path: '/signup',
             pageTitle: 'Signup',
-            errorMessage: errors.array()[0].msg
+            errorMessage: errors.array()[0].msg,
+            userInput: {
+                email: email,
+                password: password,
+                confirmPassword: req.body.confirmPassword
+            },
+            errors: errors.array()
         })
     }
-
-    const email = req.body.email;
-    const password = req.body.password;
 
     bcrypt.hash(password, 12)
         .then(hash => {
