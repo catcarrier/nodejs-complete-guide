@@ -4,7 +4,7 @@ const csrf = require('csurf'); // anti-CSRF middleware
 const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 const authRoutes = require('./routes/auth');
-const notFoundRoutes = require('./routes/404');
+const errorController = require('./controllers/error');
 const bodyParser = require('body-parser');
 const User = require('./models/user');
 const mongoose = require('mongoose');
@@ -39,7 +39,6 @@ app.use(csrfProtector);
 // helper middleware for sending messages to the user via the session
 app.use(flash());
 
-
 // sessionStore does not know about Mongoose, so the session.user object,
 // even if it exists (that is, session has not been destroyed), is not an
 // instance of the User class, so we cannot call methods or get the cart etc.
@@ -57,14 +56,12 @@ app.use((req, res, next) => {
     User.findById(req.session.user._id)
         .exec()
         .then(user => {
-            req.user = user;
+            if(user) {req.user = user}
             return next();
         })
         .catch(err => {
-            console.log(err);
-            return next();
+            throw new Error(err);
         });
-
 })
 
 /**
@@ -82,7 +79,8 @@ app.use((req, res, next) => {
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
-app.use(notFoundRoutes);
+app.use('/500', errorController.get500);
+app.use(errorController.get404);
 
 mongoose.connect(MONGDB_URI)
     .then((result) => {

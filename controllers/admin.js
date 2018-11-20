@@ -41,6 +41,10 @@ exports.postAddProduct = (req, res, next) => {
         })
     }
     const product = new Product({
+
+        // Force an error by using an existing _id
+        _id: new require('mongoose').Types.ObjectId("5bedb698a0787827285d828e"),
+
         title: title,
         price: price,
         description: description,
@@ -48,8 +52,13 @@ exports.postAddProduct = (req, res, next) => {
         userId: req.user._id
     });
     product.save()
-        .then(res.redirect('/'))
-        .catch(err => console.log(err));
+        .then(result => {
+            return res.redirect('/')
+        })
+        .catch(err => {
+            console.log(err);
+            return res.redirect('/500');
+        });
 };
 
 exports.getEditProduct = (req, res, next) => {
