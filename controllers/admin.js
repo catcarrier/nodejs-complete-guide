@@ -59,49 +59,59 @@ exports.postEditProduct = (req, res, next) => {
 
     Product.findById(productId)
         .then(product => {
+            // Did the current user create this product?
+            if (product.userId.toString() != req.user._id.toString()) {
+                // TODO return to user with error message
+                console.log('User is not allowed to update this product');
+                return res.redirect('/');
+            }
+
+            // otherwise update the product and save
             product.title = updatedTitle;
             product.imageUrl = updatedImageUrl;
             product.price = updatedPrice;
             product.description = updatedDescription;
-            return product.save();
-        })
-        .then(result => {
-            return res.redirect('/admin/products');
-        })
-        .catch(err => {
-            console.log(err);
-            return res.redirect('/admin/products');
-        });
-};
-
-exports.postDeleteProduct = (req, res, next) => {
-    const id = req.body.productId;
-    Product.deleteOne({ _id: id })
-        .then(() => {
-            return res.redirect('/admin/products');
-        })
-        .catch(err => {
-            console.log(err);
-            return res.redirect('/admin/products');
-        })
-}
-
-exports.getAllProducts = (req, res, next) => {
-
-    Product
-        .find()
-        //.select('title price -_id')
-        //.populate('userId', 'cart name')
-        //.execPopulate()
-        .exec()
-        .then(products => {
-            return res.render('admin/products', {
-                pageTitle: "Admin Products",
-                path: "/admin/products",
-                prods: products
+            return product.save()
+                .then(result => {
+                    return res.redirect('/admin/products');
+                })
             })
-        })
-        .catch(err => {
-            console.log(err);
-        })
-};
+            .catch(err => {
+                console.log(err);
+                return res.redirect('/admin/products');
+            });
+    };
+
+    exports.postDeleteProduct = (req, res, next) => {
+        const id = req.body.productId;
+
+        // Allow the delete only if the current user created this product
+        Product.deleteOne({ _id: id, userId:req.user._id })
+            .then(() => {
+                return res.redirect('/admin/products');
+            })
+            .catch(err => {
+                console.log(err);
+                return res.redirect('/admin/products');
+            })
+    }
+
+    exports.getAllProducts = (req, res, next) => {
+
+        Product
+            .find({ userId: req.user._id }) // only products created by the current user
+            //.select('title price -_id')
+            //.populate('userId', 'cart name')
+            //.execPopulate()
+            .exec()
+            .then(products => {
+                return res.render('admin/products', {
+                    pageTitle: "Admin Products",
+                    path: "/admin/products",
+                    prods: products
+                })
+            })
+            .catch(err => {
+                console.log(err);
+            })
+    };

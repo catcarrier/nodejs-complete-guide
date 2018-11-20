@@ -1,17 +1,17 @@
 const crypto = require('crypto');
 const User = require('../models/user');
+const { validationResult } = require('express-validator/check');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const sendgridTransport = require('nodemailer-sendgrid-transport');
 
-const api_key = require('../api/sendgrid.api');
+const api_key = require('../api/sendgrid.api').api_key;
 
 const transporter = nodemailer.createTransport(sendgridTransport({
     auth: {
-        api_key: ap_key
+        api_key: api_key
     }
-}))
-
+}));
 
 exports.getLogin = (req, res, next) => {
 
@@ -31,20 +31,21 @@ exports.getLogin = (req, res, next) => {
 
 
 exports.postLogin = (req, res, next) => {
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(422).render('auth/login', {
+            path: '/login',
+            pageTitle: 'Log in',
+            errorMessage: errors.array()[0].msg
+        })
+    }
+
     const email = req.body.email;
     const password = req.body.password;
+
     User.findOne({ email: email })
         .then(user => {
-            if (!user) {
-
-                // Becuase we are redirecting, a new req/res will be created, and
-                // there is no way to put an error msg onto the user's page.
-                // This middleware inserts a msg into the session that persists until used.
-                // See getLogin().
-                req.flash('errorMessage', 'invalid email or password.');
-                return res.redirect('/login');
-            }
-
             bcrypt.compare(password, user.password)
                 .then(result => {
                     if (result) {
@@ -93,60 +94,41 @@ exports.getSignup = (req, res, next) => {
 }
 
 exports.postSignup = (req, res, next) => {
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(422).render('auth/signup', {
+            path: '/signup',
+            pageTitle: 'Signup',
+            errorMessage: errors.array()[0].msg
+        })
+    }
+
     const email = req.body.email;
     const password = req.body.password;
-    const confirmPassword = req.body.confirmPassword;
 
-    if (email.length < 1) {
-        req.flash('errorMessage', 'Email is required.');
-        return res.redirect('/signup');
-    }
-
-    if (password.length == 0 || confirmPassword.length == 0) {
-        req.flash('errorMessage', 'Type a non-blank value for password');
-        return res.redirect('/signup');
-    }
-
-    if (password !== confirmPassword) {
-        req.flash('errorMessage', 'Passwords must match');
-        return res.redirect('/signup')
-    }
-
-    // Is there a user matching this email?
-    User.findOne({ email: email })
-        .exec()
-        .then(user => {
-            if (user) {
-                req.flash('errorMessage', 'Email already in use.');
-                return res.redirect('/signup');
-            }
-
-            return bcrypt.hash(password, 12)
-                .then(hash => {
-                    const newUser = new User({
-                        email: email,
-                        password: hash,
-                        cart: { items: [] }
-                    });
-                    return newUser.save();
-                })
-                .then((result) => {
-                    // redirect first, then send mail
-                    res.redirect('/login');
-                    return transporter.sendMail({
-                        to: email,
-                        from: 'shop@node-complete.us',
-                        subject: 'Signup successful',
-                        html: '<h1>Your signup was successful</h1>'
-                    })
-                })
-                .catch((err) => {
-                    console.log(err);
-                })
+    bcrypt.hash(password, 12)
+        .then(hash => {
+            const newUser = new User({
+                email: email,
+                password: hash,
+                cart: { items: [] }
+            });
+            return newUser.save();
         })
-        .catch(err => {
+        .then((result) => {
+            // redirect first, then send mail
+            res.redirect('/login');
+            return transporter.sendMail({
+                to: email,
+                from: 'shop@node-complete.us',
+                subject: 'Signup successful',
+                html: '<h1>Your signup was successful</h1>'
+            })
+        })
+        .catch((err) => {
             console.log(err);
-        });
+        })
 }
 
 exports.getReset = (req, res, next) => {
@@ -225,7 +207,8 @@ exports.getNewPassword = (req, res, next) => {
             }
 
             // The reset token is passed in here via url param, but
-            // it will be in a hidden field on the reset form
+            // we put it in a hidden field on the reset form we now
+            // show to the user.
             res.render('auth/new-password', {
                 path: '/new-password',
                 pageTitle: 'New Password',
@@ -240,15 +223,22 @@ exports.getNewPassword = (req, res, next) => {
         })
 }
 
+/**
+ * The user is submitting the password-reset form.
+ * The body contains:
+ * -- userId representing the user whose password is being reset.
+ * -- The password reset token for that user.
+ */
 exports.postNewPassword = (req, res, next) => {
     const newPassword = req.body.password;
     const confirmNewPassword = req.body.confirmPassword;
     const userId = req.body.userId;
     const passwordToken = req.body.passwordToken;
+    let updatedUser;
 
     // confirm passwords not empty 
-    if( newPassword.length<1 || confirmNewPassword.length < 1 ) {
-        req.flash('errorMessage','Type the new password in both fields');
+    if (newPassword.length < 1 || confirmNewPassword.length < 1) {
+        req.flash('errorMessage', 'Type the new password in both fields');
         return res.render('auth/new-password', {
             path: '/new-password',
             pageTitle: 'New Password',
@@ -258,8 +248,8 @@ exports.postNewPassword = (req, res, next) => {
     }
 
     // confirm passwords match
-    if(newPassword != confirmNewPassword) {
-        req.flash('errorMessage','Type the new password in both fields - make sure they match');
+    if (newPassword != confirmNewPassword) {
+        req.flash('errorMessage', 'Type the new password in both fields - make sure they match');
         return res.render('auth/new-password', {
             path: '/new-password',
             pageTitle: 'New Password',
@@ -268,9 +258,31 @@ exports.postNewPassword = (req, res, next) => {
         })
     }
 
-    // TODO confirm the user exists
+    // Check that a user exists matching this user and reset token,
+    // and that the token is not expired
+    User.findOne({
+        resetToken: passwordToken,
+        resetTokenExpiration: { $gt: Date.now() },
+        _id: userId
+    })
+        .then(user => {
 
-
-
-
+            if (!user) {
+                throw "User not found!";
+            }
+            updatedUser = user;
+            return bcrypt.hash(newPassword, 12);
+        })
+        .then(hashedPassword => {
+            updatedUser.password = hashedPassword;
+            updatedUser.resetToken = undefined;
+            updatedUser.resetTokenExpiration = undefined;
+            return updatedUser.save();
+        })
+        .then(result => {
+            return res.redirect('/login');
+        })
+        .catch(err => {
+            console.log(err);
+        })
 }

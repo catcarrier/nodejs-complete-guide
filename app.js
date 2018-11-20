@@ -39,6 +39,7 @@ app.use(csrfProtector);
 // helper middleware for sending messages to the user via the session
 app.use(flash());
 
+
 // sessionStore does not know about Mongoose, so the session.user object,
 // even if it exists (that is, session has not been destroyed), is not an
 // instance of the User class, so we cannot call methods or get the cart etc.
