@@ -181,6 +181,9 @@ exports.getOrders = (req, res, next) => {
                 let order = newOrders[i];
 
                 order.items = order.items.map(item => {
+
+
+
                     return {
                         productId: item.productId._id,
                         title: item.productId.title,
