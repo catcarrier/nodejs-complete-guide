@@ -83,18 +83,25 @@ exports.postLogin = (req, res, next) => {
                     }
                 })
                 .catch(err => {
-                    console.log('compare error: ', err);
-                    return res.redirect('/login');
+                    const error = new Error(err);
+                    error.httpStatusCode = 500;
+                    next(err);
                 });
         })
         .catch(err => {
-            console.log(err);
+            const error = new Error(err);
+            error.httpStatusCode = 500;
+            next(err);
         })
 }
 
 exports.postLogout = (req, res, next) => {
     req.session.destroy((err) => {
-        if (err) { console.log(err) }
+        if (err) {
+            const error = new Error(err);
+            error.httpStatusCode = 500;
+            return next(err);
+        }
         res.redirect('/')
     })
 }
@@ -162,7 +169,9 @@ exports.postSignup = (req, res, next) => {
             })
         })
         .catch((err) => {
-            console.log(err);
+            const error = new Error(err);
+            error.httpStatusCode = 500;
+            next(err);
         })
 }
 
@@ -185,8 +194,10 @@ exports.postReset = (req, res, next) => {
     // Generate an expiring token to be sent in email, and save the token
     crypto.randomBytes(32, (err, buffer) => {
         if (err) {
-            console.log(err);
-            return res.redirect('/reset');
+            const error = new Error(err);
+            error.httpStatusCode = 500;
+            return next(err);
+            //return res.redirect('/reset');
         }
 
         const token = buffer.toString('hex');
@@ -217,7 +228,9 @@ exports.postReset = (req, res, next) => {
                 })
             })
             .catch(err => {
-                console.log(err);
+                const error = new Error(err);
+                error.httpStatusCode = 500;
+                next(err);
             })
     })
 }
@@ -254,7 +267,9 @@ exports.getNewPassword = (req, res, next) => {
 
         })
         .catch(err => {
-            console.log(err)
+            const error = new Error(err);
+            error.httpStatusCode = 500;
+            next(err);
         })
 }
 
@@ -318,6 +333,8 @@ exports.postNewPassword = (req, res, next) => {
             return res.redirect('/login');
         })
         .catch(err => {
-            console.log(err);
+            const error = new Error(err);
+            error.httpStatusCode = 500;
+            next(err);
         })
 }

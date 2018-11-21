@@ -12,7 +12,7 @@
                         <%= errorMessage %>
                     </div>
                 <% } %>
-                <form class="product-form" action="/admin/<% if(editing){ %>edit-product<% } else { %>add-product<% } %>" method="POST">
+                <form class="product-form" action="/admin/<% if(editing){ %>edit-product<% } else { %>add-product<% } %>" method="POST" enctype="multipart/form-data">
                     <div class="form-control">
                         <label for="title">Title</label>
                         <input 
@@ -22,7 +22,7 @@
                             class="<%= errors.find(e => e.param==='title') ? 'invalid' : '' %>" 
                             value="<%= product.title %>">
                     </div>
-                    <div class="form-control">
+                    <!-- <div class="form-control">
                         <label for="imageUrl">Image URL</label>
                         <input 
                             type="text" 
@@ -30,7 +30,15 @@
                             id="imageUrl" 
                             class="<%= errors.find(e => e.param==='imageUrl') ? 'invalid' : '' %>" 
                             value="<%= product.imageUrl %>">
-                    </div>
+                    </div> -->
+                    <div class="form-control">
+                            <label for="image">Image</label>
+                            <input 
+                                class="<%= errors.find(e => e.param==='image') ? 'invalid' : '' %>" 
+                                type="file" 
+                                name="image" 
+                                id="image">
+                        </div>
                     <div class="form-control">
                         <label for="price">Price</label>
                         <input 

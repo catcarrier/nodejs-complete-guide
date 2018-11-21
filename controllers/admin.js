@@ -12,7 +12,7 @@ exports.getAddProduct = (req, res, next) => {
             description: '',
             price: ''
         },
-        errorMessage:null,
+        errorMessage: null,
         errors: [],
         editing: false
     })
@@ -20,9 +20,26 @@ exports.getAddProduct = (req, res, next) => {
 
 exports.postAddProduct = (req, res, next) => {
     const title = req.body.title;
-    const imageUrl = req.body.imageUrl;
+    const image = req.file; // multer transforms req.body.<fileControl> --> req.file
     const description = req.body.description;
     const price = Number.parseFloat(req.body.price);
+
+    // If the user did not attach a file or if the file was declined (see 
+    // multer config in app.js) then image will be undefined
+    if(!image) {
+        return res.status(422).render('admin/edit-product', {
+            path: '/add-product',
+            pageTitle: 'Add Product',
+            errorMessage: 'No file attached, or attached file not supported',
+            errors: [],
+            product: {
+                title: title,
+                description: description,
+                price: price
+            },
+            editing: false /* product not saved yet, so adding, not editing */
+        })
+    }
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -33,18 +50,17 @@ exports.postAddProduct = (req, res, next) => {
             errors: errors.array(),
             product: {
                 title: title,
-                imageUrl: imageUrl,
                 description: description,
                 price: price
             },
             editing: false /* product not saved yet, so adding, not editing */
         })
     }
+
+    // multer saved the file to this location
+    const imageUrl = image.path;
+
     const product = new Product({
-
-        // Force an error by using an existing _id
-        _id: new require('mongoose').Types.ObjectId("5bedb698a0787827285d828e"),
-
         title: title,
         price: price,
         description: description,
@@ -56,8 +72,9 @@ exports.postAddProduct = (req, res, next) => {
             return res.redirect('/')
         })
         .catch(err => {
-            console.log(err);
-            return res.redirect('/500');
+            const error = new Error(err);
+            error.httpStatusCode = 500;
+            next(err);
         });
 };
 
@@ -74,23 +91,28 @@ exports.getEditProduct = (req, res, next) => {
                 product: product,
                 pageTitle: "Edit " + product.title,
                 path: "/admin/edit-product",
-                errorMessage:'',
-                errors:[],
+                errorMessage: '',
+                errors: [],
                 editing: editMode
             })
         })
         .catch(err => {
-            console.log(err);
-            return res.redirect('/');
+            const error = new Error(err);
+            error.httpStatusCode = 500;
+            next(err);
         });
 };
 
 exports.postEditProduct = (req, res, next) => {
     const productId = req.body.productId;
     const updatedTitle = req.body.title;
-    const updatedImageUrl = req.body.imageUrl;
+    //const updatedImageUrl = req.body.imageUrl;
     const updatedDescription = req.body.description;
     const updatedPrice = Number.parseFloat(req.body.price);
+
+    // If this is undefined, then no file was attached to the post.
+    // In this case keep the existing file.
+    const image = req.file;
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -101,7 +123,6 @@ exports.postEditProduct = (req, res, next) => {
             errors: errors.array(),
             product: {
                 title: updatedTitle,
-                imageUrl: updatedImageUrl,
                 description: updatedDescription,
                 price: updatedPrice,
                 _id: productId
@@ -122,7 +143,7 @@ exports.postEditProduct = (req, res, next) => {
 
             // otherwise update the product and save
             product.title = updatedTitle;
-            product.imageUrl = updatedImageUrl;
+            product.imageUrl = image ? image.path : product.imageUrl;
             product.price = updatedPrice;
             product.description = updatedDescription;
             return product.save()
@@ -131,8 +152,9 @@ exports.postEditProduct = (req, res, next) => {
                 })
         })
         .catch(err => {
-            console.log(err);
-            return res.redirect('/admin/products');
+            const error = new Error(err);
+            error.httpStatusCode = 500;
+            next(err);
         });
 };
 
@@ -145,8 +167,9 @@ exports.postDeleteProduct = (req, res, next) => {
             return res.redirect('/admin/products');
         })
         .catch(err => {
-            console.log(err);
-            return res.redirect('/admin/products');
+            const error = new Error(err);
+            error.httpStatusCode = 500;
+            next(err);
         })
 }
 
@@ -166,6 +189,8 @@ exports.getAllProducts = (req, res, next) => {
             })
         })
         .catch(err => {
-            console.log(err);
+            const error = new Error(err);
+            error.httpStatusCode = 500;
+            next(err);
         })
 };
