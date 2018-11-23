@@ -1,6 +1,8 @@
 const Product = require('../models/product');
 const Order = require('../models/order');
 const getPageState = require('../util/pagination');
+const secretKey = require('../api/stripe.test').secretKey; /* TEST key */
+const stripe = require("stripe")(secretKey);
 
 // TODO move to a shared definition
 const ITEMS_PER_PAGE = 3;
@@ -23,7 +25,7 @@ exports.getProducts = (req, res, next) => {
                     prods: products,
                     pageTitle: 'All Products',
                     path: '/products',
-                    pageState:pageState
+                    pageState: pageState
 
                 });
             }
@@ -141,86 +143,85 @@ exports.getRemoveFromCart = (req, res, next) => {
 
 exports.getCheckout = (req, res, next) => {
     req.user
-    .populate('cart.items.productId')
-    .execPopulate()
-    .then(user => {
-        const newItems = user.cart.items.map(i => {
-            return {
-                _id: i._id,
-                productId: i.productId._id,
-                quantity: i.quantity,
-                title: i.productId.title, /* <-- pull down*/
-                price: i.productId.price,
-                description: i.productId.description,
-                imageUrl: i.productId.imageUrl
-            }
+        .populate('cart.items.productId')
+        .execPopulate()
+        .then(user => {
+            const newItems = user.cart.items.map(i => {
+                return {
+                    _id: i._id,
+                    productId: i.productId._id,
+                    quantity: i.quantity,
+                    title: i.productId.title, /* <-- pull down*/
+                    price: i.productId.price,
+                    description: i.productId.description,
+                    imageUrl: i.productId.imageUrl
+                }
+            })
+            return newItems;
         })
-        return newItems;
-    })
-    .then(enrichedItems => {
-        let totalPrice = 0;
-        enrichedItems.forEach(item => {
-            totalPrice += item.price * item.quantity;
-        });
-        return res.render('shop/checkout', {
-            pageTitle: 'Checkout',
-            path: '/checkout',
-            products: enrichedItems,
-            totalPrice: totalPrice
-        });
-    })
+        .then(enrichedItems => {
+            let totalPrice = 0;
+            enrichedItems.forEach(item => {
+                totalPrice += item.price * item.quantity;
+            });
+            return res.render('shop/checkout', {
+                pageTitle: 'Checkout',
+                path: '/checkout',
+                products: enrichedItems,
+                totalPrice: totalPrice
+            });
+        })
 };
 
 exports.postOrder = (req, res, next) => {
-    if (req.user.cart.items.length < 1) {
-        return res.redirect('/cart');
-    }
+    const token = req.body.stripeToken;
+    let totalPrice = 0;
 
-    // Get the items in the user's cart,
-    // fill in the product details via the Product model.
-    // This replaces each order item's productId with a copy
-    // of the Product from the Product collection.
-    //
-    // Before: user.cart.items[ { productId: <ObjectId> } ]
-    // After:  user.cart.items[ { productId: <Product> } ]
-    //
-    // 
+    // Pull in the product details not in the cart: price, title, description. image url...
     req.user.populate('cart.items.productId')
         .execPopulate()
         .then(user => {
-            // Flatten the model by transforming each order item
-            // to pull the various product properties down one level
-            const newItems = user.cart.items.map(item => {
+            const newItems = user.cart.items.map(i => {
                 return {
-                    productId: item.productId,
-                    title: item.productId.title,
-                    description: item.productId.description,
-                    price: item.productId.price,
-                    imageUrl: item.productId.imageUrl,
-                    quantity: item.quantity
+                    _id: i._id,
+                    productId: i.productId._id,
+                    quantity: i.quantity,
+                    title: i.productId.title, /* <-- pull down*/
+                    price: i.productId.price,
+                    description: i.productId.description,
+                    imageUrl: i.productId.imageUrl
                 }
+            });
+            newItems.forEach(item => {
+                totalPrice += item.price * item.quantity;
             });
             return newItems;
         })
         .then(items => {
+            // Save the order
             const order = new Order({
                 user: { userId: req.user._id },
                 items: items
             });
-            return order;
-        })
-        .then(order => {
             return order.save();
         })
+        .then(order => {
+            const charge = stripe.charges.create({
+                amount: totalPrice * 100, /* amount is in cents, so mult by 100 */
+                currency: 'usd',
+                description: 'Your demo order from ' + Date.now().toString(),
+                source: token,
+                metadata: { order_id: order._id.toString() }
+            });
+        })
         .then(result => {
-            return req.user.clearCart()
+            return req.user.clearCart();
         })
         .then(result => {
             return res.redirect('/orders')
         })
         .catch(err => {
-            console.log(err);
-            res.redirect('/cart');
+            next(err);
         })
 };
 
@@ -244,9 +245,6 @@ exports.getOrders = (req, res, next) => {
                 let order = newOrders[i];
 
                 order.items = order.items.map(item => {
-
-
-
                     return {
                         productId: item.productId._id,
                         title: item.productId.title,
@@ -267,12 +265,9 @@ exports.getOrders = (req, res, next) => {
             });
         })
         .catch(err => {
-            console.log(err);
-            return res.redirect('/');
+            next(err);
         });
 };
-
-
 
 exports.getInvoice = (req, res, next) => {
     const fs = require('fs');

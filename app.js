@@ -4,6 +4,8 @@ const csrf = require('csurf'); // anti-CSRF middleware
 const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 const authRoutes = require('./routes/auth');
+const shopController = require('./controllers/shop');
+const isAuth = require('./guards/is-auth').isAuth;
 const errorController = require('./controllers/error');
 const bodyParser = require('body-parser');
 const multer = require('multer');
@@ -56,20 +58,8 @@ app.use(session({
     store: sessionStore
 }));
 
-// This middleware checks that any request that modifies
-// data on the host contains the csrf token.
-// Note that this has to be added after the session, above.
-const csrfProtector = csrf();
-app.use(csrfProtector);
-
-/**
- * Here we send a csrf token with every response. The csrf middleware (see above)
- * will check for a valid token in any post.
- * This is equiv to passing {...csrfToken: req.csrfToken()} in every controller
- */
 app.use((req, res, next) => {
     res.locals.isAuthenticated = req.session.isLoggedIn;
-    res.locals.csrfToken = req.csrfToken();
     next();
 });
 
@@ -103,6 +93,22 @@ app.use((req, res, next) => {
         });
 })
 
+// We are using Stripe, which creates and submits its own form.
+// That form will not have our csrf token. Therefor we put
+// this route handler here in app.js, not in any /route handler,
+// and we put it before the csrf middleware (see below).
+app.post("/create-order", isAuth, shopController.postOrder);
+
+// This middleware checks that any request that modifies
+// data on the host contains the csrf token.
+// Note that this has to be added after the session, above.
+const csrfProtector = csrf();
+app.use(csrfProtector);
+
+app.use((req, res, next) => {
+    res.locals.csrfToken = req.csrfToken();
+    next();
+});
 
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
@@ -120,7 +126,6 @@ app.use((err, req, res, next) => {
         path:'/500',
         isAuthenticated: req.session.isLoggedIn
     })
-    //res.redirect('/500');
 })
 
 mongoose.connect(MONGDB_URI)

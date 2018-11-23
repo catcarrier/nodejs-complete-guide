@@ -19,6 +19,21 @@
                 <div class="centered">
                     <h2>Total: <%= totalPrice %></h2>
                 </div>
+                <div class="centered">
+                    <form action="/create-order" method="POST">
+                        <script
+                          src="https://checkout.stripe.com/checkout.js" class="stripe-button"
+                          data-key="pk_test_N4RJH9Wni97gArpqRvz8JLL5"
+                          data-amount="<%= totalPrice * 100 %>"
+                          data-name="Your order"
+                          data-description="The stuff in your cart"
+                          data-image="https://stripe.com/img/documentation/checkout/marketplace.png"
+                          data-locale="auto"
+                          cata-currency="usd">
+                        </script>
+                        <!-- No csrf token here. Stripes creates its own form, we cannot insert the token. -->
+                      </form>
+                </div>
                 
                 
             <% } else { %>
