@@ -172,8 +172,8 @@ exports.postEditProduct = (req, res, next) => {
         });
 };
 
-exports.postDeleteProduct = (req, res, next) => {
-    const id = req.body.productId;
+exports.deleteProduct = (req, res, next) => {
+    const id = req.params.productId;
     let imageUrl;
 
     // Get the path to the product image so we can delete that
@@ -190,12 +190,21 @@ exports.postDeleteProduct = (req, res, next) => {
             return Product.deleteOne({ _id: id });
         })
         .then(result => {
-            res.redirect('/admin/products')
+
+            // TODO send json instead of redirect
+            //res.redirect('/admin/products')
+            res.status(200).json({
+                message: "Success"
+            });
         })
         .catch(err => {
-            const error = new Error(err);
-            error.httpStatusCode = 500;
-            next(err);
+            // const error = new Error(err);
+            // error.httpStatusCode = 500;
+            // next(err);
+            res.status(500).json({
+                message: "deleting product failed!"
+            });
+
         })
 }
 

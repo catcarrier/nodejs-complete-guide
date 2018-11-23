@@ -33,7 +33,8 @@ router.post('/edit-product', isAuth, [
         .isLength({ min: 5 })
 ], adminController.postEditProduct);
 
-router.post('/delete-product', isAuth, adminController.postDeleteProduct);
+// via js - not a POST
+router.delete('/product/:productId', isAuth, adminController.deleteProduct);
 
 router.get('/products', isAuth, adminController.getAllProducts);
 

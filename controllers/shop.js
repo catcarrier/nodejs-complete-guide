@@ -139,6 +139,38 @@ exports.getRemoveFromCart = (req, res, next) => {
         })
 };
 
+exports.getCheckout = (req, res, next) => {
+    req.user
+    .populate('cart.items.productId')
+    .execPopulate()
+    .then(user => {
+        const newItems = user.cart.items.map(i => {
+            return {
+                _id: i._id,
+                productId: i.productId._id,
+                quantity: i.quantity,
+                title: i.productId.title, /* <-- pull down*/
+                price: i.productId.price,
+                description: i.productId.description,
+                imageUrl: i.productId.imageUrl
+            }
+        })
+        return newItems;
+    })
+    .then(enrichedItems => {
+        let totalPrice = 0;
+        enrichedItems.forEach(item => {
+            totalPrice += item.price * item.quantity;
+        });
+        return res.render('shop/checkout', {
+            pageTitle: 'Checkout',
+            path: '/checkout',
+            products: enrichedItems,
+            totalPrice: totalPrice
+        });
+    })
+};
+
 exports.postOrder = (req, res, next) => {
     if (req.user.cart.items.length < 1) {
         return res.redirect('/cart');
@@ -240,12 +272,7 @@ exports.getOrders = (req, res, next) => {
         });
 };
 
-exports.getCheckout = (req, res, next) => {
-    res.render('shop/checkout', {
-        pageTitle: 'Checkout',
-        path: '/checkout'
-    });
-};
+
 
 exports.getInvoice = (req, res, next) => {
     const fs = require('fs');
