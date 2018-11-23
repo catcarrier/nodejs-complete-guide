@@ -107,6 +107,7 @@ app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
 app.use('/500', errorController.get500);
+app.use('/404', errorController.get404);
 
 // any route not handled above
 app.use(errorController.get404);

@@ -1,6 +1,9 @@
 const express = require('express');
 const { body } = require('express-validator/check'); /* use { check } to check headers, params, cookies etc not just body */
-const User = require('../models/user')
+const User = require('../models/user');
+const isAuth = require('../guards/is-auth').isAuth;
+const shopController = require('../controllers/shop');
+
 
 const router = express.Router();
 
@@ -65,5 +68,7 @@ router.post('/reset', authController.postReset); // user submits password-reset 
 router.get('/reset/:token', authController.getNewPassword); // user opens the password-reset email
 
 router.post('/new-password', authController.postNewPassword); // user submits new password
+
+router.get('/orders/:orderId', isAuth, shopController.getInvoice);
 
 module.exports = router;

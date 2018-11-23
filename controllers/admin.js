@@ -1,5 +1,6 @@
 const Product = require('../models/product');
 const { validationResult } = require('express-validator/check');
+const fileUtil = require('../util/file'); // fs helper functions
 
 exports.getAddProduct = (req, res, next) => {
     res.render('admin/edit-product', {
@@ -26,7 +27,7 @@ exports.postAddProduct = (req, res, next) => {
 
     // If the user did not attach a file or if the file was declined (see 
     // multer config in app.js) then image will be undefined
-    if(!image) {
+    if (!image) {
         return res.status(422).render('admin/edit-product', {
             path: '/add-product',
             pageTitle: 'Add Product',
@@ -109,11 +110,9 @@ exports.postEditProduct = (req, res, next) => {
     //const updatedImageUrl = req.body.imageUrl;
     const updatedDescription = req.body.description;
     const updatedPrice = Number.parseFloat(req.body.price);
+    const updatedImage = req.file; // If this is undefined, then no file was attached to the post.
 
-    // If this is undefined, then no file was attached to the post.
-    // In this case keep the existing file.
-    const image = req.file;
-
+    // Did the route validation throw any errors?
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(422).render('admin/edit-product', {
@@ -134,6 +133,7 @@ exports.postEditProduct = (req, res, next) => {
     Product.findById(productId)
         .then(product => {
             // Did the current user create this product?
+            // TODO use route validation for this.
             if (product.userId.toString() != req.user._id.toString()) {
 
                 // TODO return to user with error message
@@ -141,9 +141,23 @@ exports.postEditProduct = (req, res, next) => {
                 return res.redirect('/');
             }
 
-            // otherwise update the product and save
+            // otherwise update the product with the updated values, and save.
+
+            // First, delete the existing image *if* the user
+            // supplied an image with the post. If the user did not
+            // supply an image, keep the existing one
+            if (updatedImage) {
+                try {
+                    console.log('removing existing product image ', product.imageUrl);
+                    fileUtil.deleteFile(product.imageUrl);
+                    console.log('removing existing product image... done');
+                } catch (e) {
+                    console.log(e);
+                }
+            }
+
             product.title = updatedTitle;
-            product.imageUrl = image ? image.path : product.imageUrl;
+            product.imageUrl = updatedImage ? updatedImage.path : product.imageUrl;
             product.price = updatedPrice;
             product.description = updatedDescription;
             return product.save()
@@ -160,11 +174,23 @@ exports.postEditProduct = (req, res, next) => {
 
 exports.postDeleteProduct = (req, res, next) => {
     const id = req.body.productId;
+    let imageUrl;
 
-    // Allow the delete only if the current user created this product
-    Product.deleteOne({ _id: id, userId: req.user._id })
-        .then(() => {
-            return res.redirect('/admin/products');
+    // Get the path to the product image so we can delete that
+    // ater deleting the product.
+    // Note that we look up only products created by this user;
+    // If the user did not create the product, they cannot delete it.
+    Product.findOne({ _id: id, userId: req.user._id })
+        .then(product => {
+            if (!product) {
+                next(new error('Product not found, or you do not have access to modify/delete it.'));
+            }
+            imageUrl = product.imageUrl;
+            fileUtil.deleteFile(imageUrl);
+            return Product.deleteOne({ _id: id });
+        })
+        .then(result => {
+            res.redirect('/admin/products')
         })
         .catch(err => {
             const error = new Error(err);

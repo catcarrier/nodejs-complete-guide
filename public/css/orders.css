@@ -27,3 +27,8 @@
     border: 1px solid #00695c;
     color: #00695c;
 }
+
+ul.orders .invoicelink,
+ul.orders .invoicedownload {
+    font-size: .8em;
+}
