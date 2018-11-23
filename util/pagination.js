@@ -20,4 +20,5 @@ function getPageState(currentPage, recordsPerPage, totalRecords ) {
 
 }
 
+
 module.exports = getPageState;

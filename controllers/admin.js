@@ -199,6 +199,7 @@ exports.postDeleteProduct = (req, res, next) => {
         })
 }
 
+
 exports.getAllProducts = (req, res, next) => {
 
     Product

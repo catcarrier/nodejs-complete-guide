@@ -33,7 +33,6 @@ exports.getProducts = (req, res, next) => {
         })
 
 
-
 };
 
 exports.getProduct = (req, res, next) => {
